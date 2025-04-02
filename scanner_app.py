@@ -28,7 +28,7 @@ def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     return percent_k_smooth, percent_d
 
 # === Scan tickers and classify Bullish/Bearish with debug ===
-def scan_tickers(tickers, k_filter=None):
+def scan_tickers(tickers):
     results = []
 
     for ticker in tickers:
@@ -66,14 +66,13 @@ def scan_tickers(tickers, k_filter=None):
             st.text(f"🧮 %D last 5: {percent_d.tail(5).round(2).to_list()}")
             st.success(f"Signal: {signal_type} → %K: {round(k_now,2)}, %D: {round(d_now,2)}")
 
-            if k_filter is None or k_now < k_filter:
-                results.append({
-                    "Ticker": ticker,
-                    "Signal": signal_type,
-                    "%K": round(k_now, 2),
-                    "%D": round(d_now, 2),
-                    "Signal Date": df.index[-1].strftime("%Y-%m-%d")
-                })
+            results.append({
+                "Ticker": ticker,
+                "Signal": signal_type,
+                "%K": round(k_now, 2),
+                "%D": round(d_now, 2),
+                "Signal Date": df.index[-1].strftime("%Y-%m-%d")
+            })
 
         except Exception as e:
             st.error(f"{ticker} ERROR: {str(e)}")
@@ -82,21 +81,19 @@ def scan_tickers(tickers, k_filter=None):
     return pd.DataFrame(results)
 
 # === Streamlit UI ===
-st.title("🔍 Stochastic Debug Scanner")
-st.markdown("Scans each ticker with raw data, stochastic values, and Bullish/Bearish classification. Useful for debugging and signal verification.")
+st.title("📊 Monthly Stochastic Scanner (Debug Mode)")
+st.markdown("Scans each ticker, shows raw data, %K/%D values, and classifies Bullish or Bearish. No filters applied — full visibility for testing and validation.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
 
-k_threshold = st.slider("Optional Filter: Only show signals where %K is below", 0, 100, 100)
-
-if st.button("Run Diagnostic Scan"):
+if st.button("Run Scanner"):
     all_tickers = []
     for source in selected_sources:
         all_tickers.extend(load_tickers(source))
 
-    st.write(f"📦 Total tickers loaded: {len(all_tickers)}")
-    results = scan_tickers(all_tickers, k_filter=k_threshold)
+    st.write(f"🔍 Total tickers loaded: {len(all_tickers)}")
+    results = scan_tickers(all_tickers)
 
     st.markdown("---")
     st.markdown("## ✅ Final Results Table")
@@ -111,4 +108,4 @@ if st.button("Run Diagnostic Scan"):
             mime="text/csv"
         )
     else:
-        st.warning("⚠️ No tickers matched the scan criteria.")
+        st.warning("⚠️ No valid signals found across selected tickers.")
