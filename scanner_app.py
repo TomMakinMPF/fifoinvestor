@@ -63,8 +63,8 @@ def scan_tickers(tickers):
 
             signal_type = "Bullish" if k_now > d_now else "Bearish"
 
-            st.text(f"🧮 %K last 5: {percent_k.tail(5).round(2).to_list()}")
-            st.text(f"🧮 %D last 5: {percent_d.tail(5).round(2).to_list()}")
+            st.text(f"🧮 %K last 5: {percent_k.tail(5).round(2).tolist()}")
+            st.text(f"🧮 %D last 5: {percent_d.tail(5).round(2).tolist()}")
             st.success(f"Signal: {signal_type} → %K: {round(k_now,2)}, %D: {round(d_now,2)}")
 
             results.append({
