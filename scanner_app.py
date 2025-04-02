@@ -5,7 +5,7 @@ import numpy as np
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Monthly Stochastic Scanner", layout="wide")
+st.set_page_config(page_title="Stock Scanner", layout="wide")
 
 # === Load tickers from text files ===
 def load_tickers(source):
