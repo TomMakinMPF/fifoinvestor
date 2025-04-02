@@ -5,7 +5,7 @@ import numpy as np
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Stochastic Scanner (Diagnostic)", layout="wide")
+st.set_page_config(page_title="Stochastic Scanner (Debug Mode)", layout="wide")
 
 # === Load tickers from selected source files ===
 def load_tickers(source):
@@ -53,9 +53,13 @@ def scan_tickers(tickers, k_filter=None):
                 st.warning(f"{ticker} skipped — NaN in %K/%D values.")
                 continue
 
-            # ✅ FIX: Use .iloc[-1] to get latest values
-            k_now = percent_k.iloc[-1]
-            d_now = percent_d.iloc[-1]
+            try:
+                k_now = float(percent_k.iloc[-1])
+                d_now = float(percent_d.iloc[-1])
+            except:
+                st.warning(f"{ticker} skipped — could not convert %K/%D to float.")
+                continue
+
             signal_type = "Bullish" if k_now > d_now else "Bearish"
 
             st.text(f"🧮 %K last 5: {percent_k.tail(5).round(2).to_list()}")
