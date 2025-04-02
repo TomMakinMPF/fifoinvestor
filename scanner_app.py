@@ -5,7 +5,7 @@ import numpy as np
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Stochastic Scanner (Debug Mode)", layout="wide")
+st.set_page_config(page_title="Stochastic Scanner (Final Debug)", layout="wide")
 
 # === Load tickers from selected source files ===
 def load_tickers(source):
@@ -27,7 +27,7 @@ def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     percent_d = percent_k_smooth.rolling(window=d_smooth).mean()
     return percent_k_smooth, percent_d
 
-# === Scan tickers and classify Bullish/Bearish with debug ===
+# === Scan tickers and classify Bullish/Bearish with safe value casting ===
 def scan_tickers(tickers):
     results = []
 
@@ -54,10 +54,10 @@ def scan_tickers(tickers):
                 continue
 
             try:
-                k_now = float(percent_k.iloc[-1])
-                d_now = float(percent_d.iloc[-1])
+                k_now = percent_k.iloc[-1].item()
+                d_now = percent_d.iloc[-1].item()
             except:
-                st.warning(f"{ticker} skipped — could not convert %K/%D to float.")
+                st.warning(f"{ticker} skipped — %K/%D could not be resolved to a scalar.")
                 continue
 
             signal_type = "Bullish" if k_now > d_now else "Bearish"
@@ -81,8 +81,8 @@ def scan_tickers(tickers):
     return pd.DataFrame(results)
 
 # === Streamlit UI ===
-st.title("📊 Monthly Stochastic Scanner (Debug Mode)")
-st.markdown("Scans each ticker, shows raw data, %K/%D values, and classifies Bullish or Bearish. No filters applied — full visibility for testing and validation.")
+st.title("📊 Monthly Stochastic Scanner (Final Debug Mode)")
+st.markdown("Scans each ticker for Bullish or Bearish stochastic setups. Shows full price data, %K/%D diagnostics, and final signals. No filters applied.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
