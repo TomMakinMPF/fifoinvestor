@@ -7,7 +7,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Monthly Stochastic Scanner", layout="wide")
 
-# === Load tickers ===
+# === Load tickers from text files ===
 def load_tickers(source):
     path = f"tickers/{source}.txt"
     if os.path.exists(path):
@@ -15,7 +15,7 @@ def load_tickers(source):
             return [line.strip() for line in file if line.strip()]
     return []
 
-# === Calculate stochastic ===
+# === Calculate stochastic oscillator ===
 def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     if len(df) < k + k_smooth + d_smooth:
         return pd.Series(dtype=float), pd.Series(dtype=float)
@@ -27,7 +27,7 @@ def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     percent_d = percent_k_smooth.rolling(window=d_smooth).mean()
     return percent_k_smooth.squeeze(), percent_d.squeeze()
 
-# === Main scan function ===
+# === Main scanning logic (clean output) ===
 def scan_tickers(ticker_map):
     results = []
 
@@ -44,7 +44,7 @@ def scan_tickers(ticker_map):
             last_date = df.index[-1].strftime("%Y-%m-%d")
             open_, high, low, close = map(float, last_row[["Open", "High", "Low", "Close"]])
 
-            # === Exchange-based price filtering ===
+            # === Price filters by exchange ===
             if source == "asx" and close < 0.50:
                 continue
             if source in ["us_stocks", "nasdaq", "nyse", "s_p_500"] and close < 1.00:
@@ -87,7 +87,7 @@ def scan_tickers(ticker_map):
 
 # === Streamlit UI ===
 st.title("📊 Monthly Stochastic Close Scanner")
-st.markdown("Scans post-month-end for stochastic crossovers. Applies price filters based on exchange rules.")
+st.markdown("Scans for stochastic crossovers using the latest monthly candle. Applies price filters and outputs clean CSV-ready results.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
@@ -99,6 +99,7 @@ if st.button("Run Scanner"):
         ticker_map.extend([(ticker, source) for ticker in tickers])
 
     st.write(f"📦 Scanning {len(ticker_map)} tickers...")
+
     results = scan_tickers(ticker_map)
 
     st.markdown("## ✅ Scan Results")
@@ -114,6 +115,6 @@ if st.button("Run Scanner"):
 
         st.dataframe(results, use_container_width=True)
     else:
-        st.warning("⚠️ No results to display.")
+        st.warning("⚠️ No valid results to display.")
         empty_df = pd.DataFrame(columns=["Ticker", "Name", "Date", "Open", "High", "Low", "Close", "%K", "%D", "Signal"])
         st.dataframe(empty_df, use_container_width=True)
