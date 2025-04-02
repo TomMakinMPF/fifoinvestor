@@ -103,7 +103,7 @@ def highlight_rows(row):
         return [""] * len(row)
 
 # === Streamlit UI ===
-st.title("📊 FIFO Investor Scanner")
+st.title("✅ FIFO Investor Scanner")
 st.markdown("Run this tool monthly to detect directional shifts across selected global markets. Results include trend classification and investment opportunity triggers.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
