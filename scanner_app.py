@@ -5,9 +5,9 @@ import numpy as np
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Stock Scanner", layout="wide")
+st.set_page_config(page_title="Monthly Stochastic Scanner", layout="wide")
 
-# === Load tickers from text files ===
+# === Load tickers from source files ===
 def load_tickers(source):
     path = f"tickers/{source}.txt"
     if os.path.exists(path):
@@ -19,7 +19,6 @@ def load_tickers(source):
 def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     if len(df) < k + k_smooth + d_smooth:
         return pd.Series(dtype=float), pd.Series(dtype=float)
-
     low_min = df["Low"].rolling(window=k).min()
     high_max = df["High"].rolling(window=k).max()
     percent_k = 100 * (df["Close"] - low_min) / (high_max - low_min)
@@ -27,7 +26,11 @@ def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     percent_d = percent_k_smooth.rolling(window=d_smooth).mean()
     return percent_k_smooth.squeeze(), percent_d.squeeze()
 
-# === Main scanning logic (clean output) ===
+# === Determine signal based on K and D
+def get_signal(k_val, d_val):
+    return "Bullish" if k_val > d_val else "Bearish"
+
+# === Main scanning logic ===
 def scan_tickers(ticker_map):
     results = []
 
@@ -44,23 +47,25 @@ def scan_tickers(ticker_map):
             last_date = df.index[-1].strftime("%Y-%m-%d")
             open_, high, low, close = map(float, last_row[["Open", "High", "Low", "Close"]])
 
-            # === Price filters by exchange ===
+            # Price filters
             if source == "asx" and close < 0.50:
                 continue
             if source in ["us_stocks", "nasdaq", "nyse", "s_p_500"] and close < 1.00:
                 continue
 
             percent_k, percent_d = calculate_stochastic(df)
-            if percent_k.empty or percent_d.empty:
+            if percent_k.empty or percent_d.empty or len(percent_k.dropna()) < 2:
                 continue
 
-            try:
-                k_now = float(percent_k.dropna().values[-1])
-                d_now = float(percent_d.dropna().values[-1])
-            except:
-                continue
+            # Get current and previous month %K and %D
+            k_now = float(percent_k.dropna().values[-1])
+            d_now = float(percent_d.dropna().values[-1])
+            k_prev = float(percent_k.dropna().values[-2])
+            d_prev = float(percent_d.dropna().values[-2])
 
-            signal_type = "Bullish" if k_now > d_now else "Bearish"
+            current_signal = get_signal(k_now, d_now)
+            previous_signal = get_signal(k_prev, d_prev)
+            buy = "Yes" if previous_signal == "Bearish" and current_signal == "Bullish" else ""
 
             try:
                 name = yf.Ticker(ticker).info.get("shortName", "N/A")
@@ -77,7 +82,8 @@ def scan_tickers(ticker_map):
                 "Close": round(close, 2),
                 "%K": round(k_now, 2),
                 "%D": round(d_now, 2),
-                "Signal": signal_type
+                "Signal": current_signal,
+                "Buy": buy
             })
 
         except:
@@ -85,9 +91,20 @@ def scan_tickers(ticker_map):
 
     return pd.DataFrame(results)
 
+# === Apply custom row styling ===
+def highlight_rows(row):
+    if row["Buy"] == "Yes":
+        return ["background-color: gold"] * len(row)
+    elif row["Signal"] == "Bullish":
+        return ["background-color: rgba(0,255,0,0.15)"] * len(row)
+    elif row["Signal"] == "Bearish":
+        return ["background-color: rgba(255,0,0,0.15)"] * len(row)
+    else:
+        return [""] * len(row)
+
 # === Streamlit UI ===
-st.title("📊 FIFO Investor Scanner")
-st.markdown("Scans logg term opportunities in the selected market instruments Applies price filters and outputs clean CSV-ready results.")
+st.title("📊 Monthly Stochastic Close Scanner")
+st.markdown("Scans each ticker for monthly stochastic signals and detects 'Buy' events based on crossover from Bearish → Bullish.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
@@ -99,12 +116,12 @@ if st.button("Run Scanner"):
         ticker_map.extend([(ticker, source) for ticker in tickers])
 
     st.write(f"📦 Scanning {len(ticker_map)} tickers...")
-
     results = scan_tickers(ticker_map)
 
     st.markdown("## ✅ Scan Results")
 
     if not results.empty:
+        # CSV download
         csv = results.to_csv(index=False).encode("utf-8")
         st.download_button(
             label="📥 Download Full Results CSV",
@@ -113,8 +130,10 @@ if st.button("Run Scanner"):
             mime="text/csv"
         )
 
-        st.dataframe(results, use_container_width=True)
+        # Display styled table
+        styled = results.style.apply(highlight_rows, axis=1)
+        st.dataframe(styled, use_container_width=True)
     else:
         st.warning("⚠️ No valid results to display.")
-        empty_df = pd.DataFrame(columns=["Ticker", "Name", "Date", "Open", "High", "Low", "Close", "%K", "%D", "Signal"])
+        empty_df = pd.DataFrame(columns=["Ticker", "Name", "Date", "Open", "High", "Low", "Close", "%K", "%D", "Signal", "Buy"])
         st.dataframe(empty_df, use_container_width=True)
