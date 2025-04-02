@@ -103,8 +103,8 @@ def highlight_rows(row):
         return [""] * len(row)
 
 # === Streamlit UI ===
-st.title("📊 Monthly Stochastic Close Scanner")
-st.markdown("Scans each ticker for monthly stochastic signals and detects 'Buy' events based on crossover from Bearish → Bullish.")
+st.title("📊 FIFO Investor Scanner")
+st.markdown("Run this tool monthly to detect directional shifts across selected global markets. Results include trend classification and investment opportunity triggers.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
