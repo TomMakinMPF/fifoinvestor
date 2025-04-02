@@ -5,7 +5,7 @@ import numpy as np
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Stochastic Scanner", layout="wide")
+st.set_page_config(page_title="Stochastic Scanner (Diagnostic)", layout="wide")
 
 # === Load tickers from selected source files ===
 def load_tickers(source):
@@ -27,7 +27,7 @@ def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     percent_d = percent_k_smooth.rolling(window=d_smooth).mean()
     return percent_k_smooth, percent_d
 
-# === Diagnostic version of scan_tickers ===
+# === Scan tickers and classify Bullish/Bearish with debug ===
 def scan_tickers(tickers, k_filter=None):
     results = []
 
@@ -53,6 +53,7 @@ def scan_tickers(tickers, k_filter=None):
                 st.warning(f"{ticker} skipped — NaN in %K/%D values.")
                 continue
 
+            # ✅ FIX: Use .iloc[-1] to get latest values
             k_now = percent_k.iloc[-1]
             d_now = percent_d.iloc[-1]
             signal_type = "Bullish" if k_now > d_now else "Bearish"
@@ -77,8 +78,8 @@ def scan_tickers(tickers, k_filter=None):
     return pd.DataFrame(results)
 
 # === Streamlit UI ===
-st.title("🔍 Stochastic Debug Scanner (Diagnostic Mode)")
-st.markdown("Scans each ticker with full printout of %K/%D, raw data preview, and Bullish/Bearish detection.")
+st.title("🔍 Stochastic Debug Scanner")
+st.markdown("Scans each ticker with raw data, stochastic values, and Bullish/Bearish classification. Useful for debugging and signal verification.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
