@@ -5,9 +5,8 @@ import numpy as np
 import os
 from datetime import datetime
 
-st.set_page_config(page_title="Stochastic Scanner (Final Debug)", layout="wide")
+st.set_page_config(page_title="Stochastic Scanner (Final FIXED)", layout="wide")
 
-# === Load tickers from selected source files ===
 def load_tickers(source):
     path = f"tickers/{source}.txt"
     if os.path.exists(path):
@@ -15,10 +14,9 @@ def load_tickers(source):
             return [line.strip() for line in file.readlines()]
     return []
 
-# === Calculate stochastic oscillator ===
 def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     if len(df) < k + k_smooth + d_smooth:
-        return pd.Series([np.nan]), pd.Series([np.nan])
+        return pd.Series(dtype=float), pd.Series(dtype=float)
     
     low_min = df["Low"].rolling(window=k).min()
     high_max = df["High"].rolling(window=k).max()
@@ -27,7 +25,6 @@ def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
     percent_d = percent_k_smooth.rolling(window=d_smooth).mean()
     return percent_k_smooth, percent_d
 
-# === Scan tickers and classify Bullish/Bearish with safe value casting ===
 def scan_tickers(tickers):
     results = []
 
@@ -49,15 +46,23 @@ def scan_tickers(tickers):
 
             percent_k, percent_d = calculate_stochastic(df)
 
-            if percent_k.isna().all() or percent_d.isna().all():
-                st.warning(f"{ticker} skipped — NaN in %K/%D values.")
+            # Ensure at least one value exists
+            if percent_k.empty or percent_d.empty:
+                st.warning(f"{ticker} skipped — empty %K/%D.")
                 continue
 
+            if percent_k.isna().all() or percent_d.isna().all():
+                st.warning(f"{ticker} skipped — NaNs in %K/%D.")
+                continue
+
+            # Safely extract last values
             try:
-                k_now = percent_k.iloc[-1].item()
-                d_now = percent_d.iloc[-1].item()
-            except:
-                st.warning(f"{ticker} skipped — %K/%D could not be resolved to a scalar.")
+                k_now = percent_k.dropna().iloc[-1]
+                d_now = percent_d.dropna().iloc[-1]
+                k_now = float(k_now)
+                d_now = float(d_now)
+            except Exception as e:
+                st.warning(f"{ticker} skipped — could not resolve %K/%D to floats. {e}")
                 continue
 
             signal_type = "Bullish" if k_now > d_now else "Bearish"
@@ -81,8 +86,8 @@ def scan_tickers(tickers):
     return pd.DataFrame(results)
 
 # === Streamlit UI ===
-st.title("📊 Monthly Stochastic Scanner (Final Debug Mode)")
-st.markdown("Scans each ticker for Bullish or Bearish stochastic setups. Shows full price data, %K/%D diagnostics, and final signals. No filters applied.")
+st.title("📊 Monthly Stochastic Scanner (Final FIXED)")
+st.markdown("Scans selected tickers for stochastic setup. No filters. Diagnostic mode with full logging.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
@@ -104,8 +109,8 @@ if st.button("Run Scanner"):
         st.download_button(
             label="📥 Download CSV",
             data=csv,
-            file_name=f"stoch_signals_debug_{datetime.now().date()}.csv",
+            file_name=f"stoch_signals_{datetime.now().date()}.csv",
             mime="text/csv"
         )
     else:
-        st.warning("⚠️ No valid signals found across selected tickers.")
+        st.warning("⚠️ No valid signals found.")
