@@ -86,8 +86,8 @@ def scan_tickers(ticker_map):
     return pd.DataFrame(results)
 
 # === Streamlit UI ===
-st.title("📊 Monthly Stochastic Close Scanner")
-st.markdown("Scans for stochastic crossovers using the latest monthly candle. Applies price filters and outputs clean CSV-ready results.")
+st.title("📊 FIFO Investor Scanner")
+st.markdown("Scans logg term opportunities in the selected market instruments Applies price filters and outputs clean CSV-ready results.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
