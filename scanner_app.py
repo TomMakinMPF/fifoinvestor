@@ -17,6 +17,9 @@ def load_tickers(source):
 
 # === Calculate stochastic oscillator ===
 def calculate_stochastic(df, k=14, k_smooth=6, d_smooth=3):
+    if len(df) < k + k_smooth + d_smooth:
+        return pd.Series([np.nan]), pd.Series([np.nan])
+    
     low_min = df["Low"].rolling(window=k).min()
     high_max = df["High"].rolling(window=k).max()
     percent_k = 100 * (df["Close"] - low_min) / (high_max - low_min)
@@ -29,8 +32,8 @@ def scan_tickers(tickers, k_filter=None):
     results = []
     for ticker in tickers:
         try:
-            df = yf.download(ticker, period="2y", interval="1mo", progress=False)
-            if df.empty or len(df) < 5:
+            df = yf.download(ticker, period="max", interval="1mo", progress=False)
+            if df.empty or len(df) < 50:
                 continue
 
             percent_k, percent_d = calculate_stochastic(df)
@@ -53,9 +56,9 @@ def scan_tickers(tickers, k_filter=None):
             continue
     return pd.DataFrame(results)
 
-# === Streamlit App ===
-st.title("📈 Monthly Stochastic Scanner: Bullish & Bearish")
-st.markdown("Scan selected ticker groups and classify stochastic condition (Bullish if %K > %D). Use the filter to find early-stage setups (%K below a threshold).")
+# === Streamlit App UI ===
+st.title("📈 Monthly Stochastic Scanner")
+st.markdown("Scans selected tickers using %K (14,6) and %D (3) to classify as **Bullish** or **Bearish**. Optional filter to only show where %K is below a threshold.")
 
 sources = ["asx", "us_stocks", "nasdaq", "nyse", "s_p_500", "currencies"]
 selected_sources = st.multiselect("Select Sources to Scan", sources)
@@ -67,7 +70,7 @@ if st.button("Run Scanner"):
     for source in selected_sources:
         all_tickers.extend(load_tickers(source))
 
-    st.write(f"Scanning {len(all_tickers)} tickers... Please wait ⏳")
+    st.write(f"Scanning {len(all_tickers)} tickers... This may take a moment ⏳")
 
     results = scan_tickers(all_tickers, k_filter=k_threshold)
 
